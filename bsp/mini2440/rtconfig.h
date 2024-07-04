@@ -196,6 +196,9 @@
 /* STM32 HAL & SDK Drivers */
 
 
+/* Infineon HAL Packages */
+
+
 /* Kendryte SDK */
 
 
