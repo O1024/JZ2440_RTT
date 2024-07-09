@@ -163,6 +163,17 @@ def PrepareBuilding(env, root_directory, has_libcpu=False, remove_components = [
                 'xmake':('gcc', 'gcc'),
                 'codelite' : ('gcc', 'gcc'),
                 'esp-idf': ('gcc', 'gcc')}
+    
+    if GetOption('run_openocd'):
+        from misc import run_openocd
+        run_openocd()
+        exit(0)
+
+    if GetOption('run_gdb'):
+        from misc import run_gdb
+        run_gdb()
+        exit(0)
+
     tgt_name = GetOption('target')
 
     if tgt_name:

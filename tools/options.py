@@ -137,3 +137,13 @@ def AddOptions():
                     action = 'store_true',
                     default = False,
                     help = 'make menuconfig for RT-Thread BSP')
+    AddOption('--run_openocd',
+                dest = 'run_openocd',
+                action = 'store_true',
+                default = False,
+                help = 'run openocd for mini2440')
+    AddOption('--run_gdb',
+                dest = 'run_gdb',
+                action = 'store_true',
+                default = False,
+                help = 'run gdb for mini2440')

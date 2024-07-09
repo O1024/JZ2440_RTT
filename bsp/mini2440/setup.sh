@@ -6,7 +6,7 @@ export BSP_ROOT="$PWD"
 export RTT_ROOT="$PWD/../../"
 
 # 交叉编译工具链路径
-export RTT_EXEC_PATH="/root/Workspace/RT-Thread/gcc-arm-none-eabi-10.3-2021.10/bin"
+export RTT_EXEC_PATH="$RTT_ROOT/../gcc-arm-none-eabi-10.3-2021.10/bin"
 
 # 交叉编译工具链前缀
 export RTT_CC_PREFIX="arm-none-eabi-"
