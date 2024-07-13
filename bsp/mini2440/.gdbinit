@@ -5,14 +5,14 @@ printf ">>> echo \"monitor h\" to get help message. \n"
 printf "------------------------------------------\n"
 
 define gdb_flash_bin
-   monitor flash_bin $arg0/$arg0.bin
-   printf "Write $arg0 to Nand Flash Done!\n"
+   monitor flash_bin rtthread.bin
+   printf "Write rtthread.bin to Nand Flash Done!\n"
 end
 
 define gdb_debug_flash_bin
-    file $arg0/$arg0.elf
+    file rtthread-mini2440.elf
     load
-    b Reset
+    b reset
     # b main
     c
 end

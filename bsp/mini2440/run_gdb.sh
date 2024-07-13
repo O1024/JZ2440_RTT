@@ -1,0 +1,6 @@
+#!/bin/bash
+
+GDBINIT=$BSP_ROOT/.gdbinit
+GDBCMD=$RTT_EXEC_PATH/${RTT_CC_PREFIX}gdb
+
+$GDBCMD -f $GDBINIT

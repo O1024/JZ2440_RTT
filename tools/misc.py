@@ -41,29 +41,3 @@ def run_openocd():
             print(stderr_line.strip())
 
     openocd_process.wait()
-
-def run_gdb():
-    gdbinit = os.getenv('BSP_ROOT') + '/.gdbinit'
-    gdb_cmd = [os.path.join(rtconfig.EXEC_PATH, rtconfig.GDB), '-f', gdbinit]
-
-    gdb_process = subprocess.Popen(gdb_cmd, stderr=subprocess.PIPE)
-
-    # read OpenOCD stderr
-    while True:
-        stderr_line = gdb_process.stderr.readline().decode('utf-8')
-        if stderr_line == '' and gdb_process.poll() is not None:
-            break
-        if stderr_line:
-            print(stderr_line.strip())
-
-    gdb_process.wait()
-
-
-
-
-    print(gdb_cmd)
-    # openocd_cmd = ''
-    # subprocess.Popen(openocd_cmd + ' -f xxx', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    # # subprocess.Popen(openocd_cmd, capture_output=True, text=True)
-    # print(os.path.join(rtconfig.EXEC_PATH, rtconfig.GDB))
-    
