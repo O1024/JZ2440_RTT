@@ -101,7 +101,7 @@ extern "C" {
 #define CLKCON     (*(volatile unsigned *)0x4c00000c) //Clock generator control
 #define CLKSLOW    (*(volatile unsigned *)0x4c000010) //Slow clock control
 #define CLKDIVN    (*(volatile unsigned *)0x4c000014) //Clock divider control
-#define CAMDIVN    (*(volatile unsigned *)0x4c000018)   //USB, CAM Clock divider control
+#define CAMDIVN    (*(volatile unsigned *)0x4c000018) //USB, CAM Clock divider control
 
 
 // LCD CONTROLLER
