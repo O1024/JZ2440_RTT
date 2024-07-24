@@ -42,21 +42,15 @@
 .equ    MODEMASK,           0x1f
 .equ    NOINT,              0xc0
 
-.equ    RAM_BASE,           0x00000000  /*Start address of RAM      */
-.equ    ROM_BASE,           0x30000000  /*Start address of Flash    */
-
-.equ    MPLLCON,            0x4c000004  /*Mpll control register     */
-.equ    M_MDIV,             0x20
-.equ    M_PDIV,             0x4
-.equ    M_SDIV,             0x2
+.equ    RAM_BASE,           0x30000000  /*Start address of RAM      */
 
 .equ    INTMSK,             0x4a000008
 .equ    INTSUBMSK,          0x4a00001c
 .equ    WTCON,              0x53000000
-.equ    LOCKTIME,           0x4c000000
-.equ    CLKDIVN,            0x4c000014  /*Clock divider control     */
+
 .equ    GPHCON,             0x56000070  /*Port H control            */
 .equ    GPHUP,              0x56000078  /*Pull-up control H         */
+
 .equ    BWSCON,             0x48000000  /*Bus width & wait status   */
 .equ    BANKCON0,           0x48000004  /*Boot ROM control          */
 .equ    BANKCON1,           0x48000008  /*BANK1 control             */
@@ -71,6 +65,13 @@
 .equ    MRSRB6,             0x4800002c  /*Mode egister set for SDRAM*/
 .equ    MRSRB7,             0x48000030  /*Mode egister set for SDRAM*/
 
+.equ    NFCONF,             0x4e000000
+.equ    NFCONT,             0x4e000004
+.equ    NFCMMD,             0x4e000008
+.equ    NFADDR,             0x4e00000C
+.equ    NFDATA,             0x4e000010
+.equ    NFSTAT,             0x4e000020
+
 /*
  *************************************************************************
  *
@@ -78,30 +79,9 @@
  *
  *************************************************************************
  */
-
+.globl	reset
 .section .init, "ax"
 .code 32
-
-.globl _start
-_start:
-    b       reset
-    ldr     pc, _vector_undef
-    ldr     pc, _vector_swi
-    ldr     pc, _vector_pabt
-    ldr     pc, _vector_dabt
-    ldr     pc, _vector_resv
-    ldr     pc, _vector_irq
-    ldr     pc, _vector_fiq
-
-_vector_undef:  .word vector_undef
-_vector_swi:    .word vector_swi
-_vector_pabt:   .word vector_pabt
-_vector_dabt:   .word vector_dabt
-_vector_resv:   .word vector_resv
-_vector_irq:    .word vector_irq
-_vector_fiq:    .word vector_fiq
-
-.balignl    16,0xdeadbeef
 
 /*
  *************************************************************************
@@ -143,11 +123,11 @@ _bss_end:
 /* IRQ stack memory (calculated at run-time)                        */
 .globl IRQ_STACK_START
 IRQ_STACK_START:
-    .word _irq_stack_start + 1024
+    .word _irq_stack_start + 2 * CONFIG_STACKSIZE
 
 .globl FIQ_STACK_START
 FIQ_STACK_START:
-    .word _fiq_stack_start + 1024
+    .word _fiq_stack_start + 2 * CONFIG_STACKSIZE
 
 .globl UNDEFINED_STACK_START
 UNDEFINED_STACK_START:
@@ -159,21 +139,21 @@ ABORT_STACK_START:
 
 .globl _STACK_START
 _STACK_START:
-    .word _svc_stack_start + 4096
+    .word _svc_stack_start + 8 * CONFIG_STACKSIZE
 
 /* ----------------------------------entry------------------------------*/
 reset:
 
     /* set the cpu to SVC32 mode    */
-    mrs     r0,cpsr
-    bic     r0,r0,#MODEMASK
-    orr     r0,r0,#SVCMODE
-    msr     cpsr,r0
+    mrs     r0, cpsr
+    bic     r0, r0, #MODEMASK
+    orr     r0, r0, #SVCMODE
+    msr     cpsr, r0
 
     /* watch dog disable            */
-    ldr     r0,=WTCON
-    ldr     r1,=0x0
-    str     r1,[r0]
+    ldr     r0, =WTCON
+    ldr     r1, =0x0
+    str     r1, [r0]
 
     /* mask all IRQs by clearing all bits in the INTMRs                 */
     ldr     r1, =INTMSK
@@ -183,19 +163,11 @@ reset:
     ldr     r0, =0x7fff             /*all sub interrupt disable         */
     str     r0, [r1]
 
-    /* set interrupt vector         */
-    ldr     r0, _load_address
-    mov     r1, #0x0                /* target address                   */
-    add     r2, r0, #0x20           /* size, 32bytes                    */
+    /* 设置栈顶指针寄存器 SP，Nand 启动时此时位于前 4k Steppingstone */
+    ldr     sp, =0x1000
 
-copy_loop:
-    ldmia   r0!, {r3-r10}           /* copy from source address [r0]    */
-    stmia   r1!, {r3-r10}           /* copy to   target address [r1]    */
-    cmp     r0, r2          /* until source end address [r2]    */
-    ble     copy_loop
 
-    /* setup stack */
-    bl      stack_setup
+
 
     /* clear .bss */
     mov     r0,#0                   /* get a zero                       */
@@ -223,18 +195,25 @@ ctor_loop:
 
 ctor_end:
 
+    @ ldr     r0, =__boot_text_end    // source address
+	@ ldr     r1, _TEXT_BASE          // target address
+	@ ldr     r2, =__data_end
+    @ @ ldr     r3, =__text_start
+	@ sub     r2, r2, r3              // text, rodata and data section size
+
+    /* 
+     * 配置代码重定向后所使用栈空间
+     * 注意：
+     *   1. 提前配置存储控制，确保 SDRAM 可正常读写；
+     *   2. 不同 CPU 工作模式下的栈空间需单独配置；
+     */
+    bl      stack_setup
+
     /* start RT-Thread Kernel       */
     ldr     pc, _rtthread_startup
 
 _rtthread_startup:
     .word rtthread_startup
-#if defined (__FLASH_BUILD__)
-_load_address:
-    .word ROM_BASE + _TEXT_BASE
-#else
-_load_address:
-    .word RAM_BASE + _TEXT_BASE
-#endif
 
 /*
  *************************************************************************
@@ -361,26 +340,25 @@ stack_setup:
     msr     cpsr_cxsf, r1           /* undef mode                       */
     ldr     sp, UNDEFINED_STACK_START
 
-    orr     r1,r0,#ABORTMODE|NOINT
-    msr     cpsr_cxsf,r1            /* abort mode                       */
+    orr     r1, r0, #ABORTMODE|NOINT
+    msr     cpsr_cxsf, r1            /* abort mode                       */
     ldr     sp, ABORT_STACK_START
 
-    orr     r1,r0,#IRQMODE|NOINT
-    msr     cpsr_cxsf,r1            /* IRQ mode                         */
+    orr     r1, r0, #IRQMODE|NOINT
+    msr     cpsr_cxsf, r1            /* IRQ mode                         */
     ldr     sp, IRQ_STACK_START
 
-    orr     r1,r0,#FIQMODE|NOINT
-    msr     cpsr_cxsf,r1            /* FIQ mode                         */
+    orr     r1, r0, #FIQMODE|NOINT
+    msr     cpsr_cxsf, r1            /* FIQ mode                         */
     ldr     sp, FIQ_STACK_START
 
-    bic     r0,r0,#MODEMASK
-    orr     r1,r0,#SVCMODE|NOINT
-    msr     cpsr_cxsf,r1            /* SVC mode                         */
+    bic     r0, r0, #MODEMASK
+    orr     r1, r0, #SVCMODE|NOINT
+    msr     cpsr_cxsf, r1            /* SVC mode                         */
 
     ldr     sp, _STACK_START
 
     /* USER mode is not initialized. */
-    mov     pc,lr                   /* The LR register may be not valid for the mode changes.*/
 
 /*/*}*/
 

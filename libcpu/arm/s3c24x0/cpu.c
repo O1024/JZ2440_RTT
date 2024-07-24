@@ -52,44 +52,6 @@ rt_inline void cache_disable(rt_uint32_t bit)
 }
 #endif
 
-#ifdef __CC_ARM
-rt_inline rt_uint32_t cp15_rd(void)
-{
-    rt_uint32_t i;
-
-    __asm
-    {
-        mrc p15, 0, i, c1, c0, 0
-    }
-
-    return i;
-}
-
-rt_inline void cache_enable(rt_uint32_t bit)
-{
-    rt_uint32_t value;
-
-    __asm
-    {
-        mrc p15, 0, value, c1, c0, 0
-        orr value, value, bit
-        mcr p15, 0, value, c1, c0, 0
-    }
-}
-
-rt_inline void cache_disable(rt_uint32_t bit)
-{
-    rt_uint32_t value;
-
-    __asm
-    {
-        mrc p15, 0, value, c1, c0, 0
-        bic value, value, bit
-        mcr p15, 0, value, c1, c0, 0
-    }
-}
-#endif
-
 /**
  * enable I-Cache
  *

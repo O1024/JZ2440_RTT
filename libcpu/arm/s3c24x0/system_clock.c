@@ -76,16 +76,19 @@ void rt_hw_get_clock(void)
         PCLK = HCLK;
 }
 
+void rt_hw_set_mpll_clock(rt_uint8_t sdiv, rt_uint8_t pdiv, rt_uint8_t mdiv) __attribute__ ((section (".lowlevel_init")));
 void rt_hw_set_mpll_clock(rt_uint8_t sdiv, rt_uint8_t pdiv, rt_uint8_t mdiv)
 {
     MPLLCON = sdiv | (pdiv<<4) | (mdiv<<12);
 }
 
+void rt_hw_set_upll_clock(rt_uint8_t sdiv, rt_uint8_t pdiv, rt_uint8_t mdiv) __attribute__ ((section (".lowlevel_init")));
 void rt_hw_set_upll_clock(rt_uint8_t sdiv, rt_uint8_t pdiv, rt_uint8_t mdiv)
 {
     UPLLCON = (mdiv<<12) | (pdiv<<4) | sdiv;
 }
 
+void rt_hw_set_divider(rt_uint8_t hdivn, rt_uint8_t pdivn) __attribute__ ((section (".lowlevel_init")));
 void rt_hw_set_divider(rt_uint8_t hdivn, rt_uint8_t pdivn)
 {
     CLKDIVN = (hdivn<<1) | pdivn;
@@ -94,11 +97,18 @@ void rt_hw_set_divider(rt_uint8_t hdivn, rt_uint8_t pdivn)
 /**
  * @brief System Clock Configuration
  */
+void rt_hw_clock_init(void) __attribute__ ((section (".lowlevel_init")));
 void rt_hw_clock_init(void)
 {
     LOCKTIME = 0xFFFFFFFF;
     rt_hw_set_mpll_clock(MPL_SDIV, MPL_PDIV, MPL_MIDV);
     rt_hw_set_upll_clock(UPL_SDIV, UPL_PDIV, UPL_MDIV);
     rt_hw_set_divider(HDIVN, PDIVN);
+
+    // when HDIV not equal 0, set CPU mode from FastBus mode to Asynchronous bus mode
+    __asm__ __volatile__(           \
+        "mrc     p15, 0, r0, c1, c0, 0\n\t" \
+        "orr     r0, r0, #(1<<12)\n\t"         \
+        "mcr     p15, 0, r0, c1, c0, 0");
 }
 

@@ -3,7 +3,7 @@ import os
 # toolchains options
 ARCH     = 'arm'
 CPU      = 's3c24x0'
-TextBase = '0x00000000'
+TextBase = '0x30000000'
 
 CROSS_TOOL 	= 'gcc'
 
@@ -46,7 +46,7 @@ if PLATFORM == 'gcc':
     DEVICE = ' -mcpu=arm920t'
     CFLAGS = DEVICE
     AFLAGS = ' -c' + DEVICE + ' -x assembler-with-cpp' + ' -DTEXT_BASE=' + TextBase
-    LFLAGS = DEVICE + ' -Wl,--gc-sections,-Map=rtthread_mini2440.map,-cref,-u,_start  -nostartfiles -T mini2440_nand.ld' + ' -Ttext ' + TextBase
+    LFLAGS = DEVICE + ' -Wl,--gc-sections,-Map=rtthread_mini2440.map,-cref,-u,_start  -nostartfiles -T mini2440_nand.ld'
 
     # module setting 
     CXXFLAGS = ' -Woverloaded-virtual -fno-exceptions -fno-rtti '
@@ -65,7 +65,7 @@ if PLATFORM == 'gcc':
     else:
         CFLAGS += ' -O2'
 
-    POST_ACTION = OBJCPY + ' -O binary $TARGET rtthread.bin\n' + SIZE + ' $TARGET \n'
+    POST_ACTION = OBJCPY + ' -O binary $TARGET rtthread.bin\n' + SIZE + ' $TARGET \n' + OBJDUMP + ' -S -d $TARGET > rtthread.dump\n'
 
 elif PLATFORM == 'armcc':
     # toolchains

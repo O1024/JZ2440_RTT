@@ -1,14 +1,28 @@
 OUTPUT_FORMAT("elf32-littlearm", "elf32-littlearm", "elf32-littlearm")
 OUTPUT_ARCH(arm)
 ENTRY(_start)
+
+MEMORY
+{
+    FLASH (rx)  : ORIGIN = 0x00000000, LENGTH = 64M
+    RAM (rwx)   : ORIGIN = 0x30000000, LENGTH = 64M
+}
+
 SECTIONS
 {
-    . = 0x00000000;
-
-    . = ALIGN(4);
+    .boot : 
+    {
+        *(.vectors)
+        *(.init)
+        build/kernel/libcpu/arm/s3c24x0/nand.o
+        . = 0x2000;
+    } > FLASH
+    
     .text : 
     {
-        *(.init)
+        _text_lma = LOADADDR(.text);
+        _text_vma = .;
+
         *(.text)
         *(.gnu.linkonce.t*)
         
@@ -34,10 +48,21 @@ SECTIONS
         __rtmsymtab_start = .;
         KEEP(*(RTMSymTab))
         __rtmsymtab_end = .;
-    }
+
+        _etext = .;
+    } > RAM AT > FLASH
 
     . = ALIGN(4);
-    .rodata : { *(.rodata) *(.rodata.*) *(.gnu.linkonce.r*) *(.eh_frame) }
+    .rodata : 
+    {
+        rodata_lma = LOADADDR(.rodata);
+        rodata_vma = .;
+        *(.rodata) 
+        *(.rodata.*) 
+        *(.gnu.linkonce.r*) 
+        *(.eh_frame)
+        _erodata = .;
+    } > RAM AT > FLASH
 
     . = ALIGN(4);
     .ctors :
@@ -59,19 +84,21 @@ SECTIONS
     . = ALIGN(4);
     .data :
     {
+        data_lma = LOADADDR(.data);
+        data_vma = .;
         *(.data)
         *(.data.*)
         *(.gnu.linkonce.d*)
-    }
+        _edata = .;
+    } > RAM AT > FLASH
 
     . = ALIGN(4);
-    .nobss : { *(.nobss) }
-
-    . = 0x30200000;
-    . = ALIGN(4);
-    __bss_start = .;
-    .bss : { *(.bss) }
-    __bss_end = .;
+    .bss : 
+    {
+        __bss_start = .;
+        *(.bss)
+        __bss_end = .;
+    } > RAM
 
     /* stabs debugging sections. */
     .stab 0 : { *(.stab) }
